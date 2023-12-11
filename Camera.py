@@ -60,7 +60,7 @@ def detect_position(frame, Width, Height):
 					cy = int(M['m01'] / M['m00'])
 					cv.circle(frame, (cx, cy), 3, (255, 0, 0), -1)
 					print(f"Ball position: {cx}, {cy}")
-	cv.imshow('Frame', frame)
+	#cv.imshow('Frame', frame)
 	return [cx, cy]
 
 def capture_video():
@@ -70,7 +70,7 @@ def capture_video():
 	Width = 1280
 	Height = 720
 	FPS = 60
-	number_of_frames = 6000
+	number_of_frames = 600
 
 	cap.set(cv.CAP_PROP_FOURCC, cv.VideoWriter_fourcc(*'MJPG'))
 	

@@ -37,7 +37,7 @@ def detect_position(frame, Width, Height):
 	#kernel = np.ones((5, 5), np.uint8)
 	#mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
 	
-	_, thresh = cv.threshold(gray, 150, 255, cv.THRESH_BINARY_INV)
+	_, thresh = cv.threshold(gray, 140, 255, cv.THRESH_BINARY_INV)
 	kernel = np.ones((5, 5), np.uint8)
 	thresh = cv.morphologyEx(thresh, cv.MORPH_OPEN, kernel)
 
@@ -60,7 +60,7 @@ def detect_position(frame, Width, Height):
 					cy = int(M['m01'] / M['m00'])
 					cv.circle(frame, (cx, cy), 3, (255, 0, 0), -1)
 					print(f"Ball position: {cx}, {cy}")
-	#cv.imshow('Frame', frame)
+	cv.imshow('Frame', frame)
 	return [cx, cy]
 
 def capture_video():

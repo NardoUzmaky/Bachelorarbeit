@@ -5,6 +5,18 @@ import time
 import numpy as np
 import RPi.GPIO as gpio
 
+class LowPassFilter:
+    def __init__(self, alpha):
+        self.alpha = alpha
+        self.filtered_value = None
+
+    def update(self, new_value):
+        if self.filtered_value is None:
+            self.filtered_value = new_value
+        else:
+            self.filtered_value = self.alpha * new_value + (1 - self.alpha) * self.filtered_value
+        return self.filtered_value
+
  
 def init():
 	gpio.setmode(gpio.BCM)
@@ -31,14 +43,12 @@ def turn_motor(sec, direction, speed, pwm):
 	else:
 		print("Enter valid Direction")
 		return
-	#pwm = gpio.PWM(24, 1000) #EN
-	#pwm.start(0)
+
 	pwm.ChangeDutyCycle(speed)
 	time.sleep(sec)	
-	#pwm.ChangeDutyCycle(0)
 
 # Initialize your PID controller
-pid = PID(3.5, 1.5, 0.3, setpoint=0)  # Example coefficients and setpoint
+pid = PID(3.5, 1.5, 1, setpoint=0)  # Example coefficients and setpoint
 pid.output_limits = (-50, 50)
 
 interval = 0.01
@@ -58,12 +68,17 @@ try:
 	values = []
 	pwm = init()
 	ads = initialize_potentiometer()
+	alpha = 0.1
+	lpf = LowPassFilter(alpha)
+	
 	for i in range(100):
 		time1 = time.time()
 		current_value = read_sensor(ads)
 		print("Angle: ", current_value)
-		values.append(current_value)
-		control = pid(current_value)
+		#values.append(current_value)
+		filtered_value = lpf.update(current_value)
+		values.append(filtered_value)
+		control = pid(filtered_value)
 		direction = None
 		if control < 0:
 			direction = "forward"
@@ -91,6 +106,11 @@ finally:
 	print("clean up")
 	pwm.stop()
 	gpio.cleanup()
+	#alpha = 0.15  # Adjust this to change the filtering strength
+	#lpf = LowPassFilter(alpha)
+
+	#raw_sensor_values = values
+	#filtered_values = [lpf.update(value) for value in raw_sensor_values]
 	time = np.linspace(0, (len(values)-1)*0.01, len(values))
 	plt.plot(time, values)
 	plt.title("Step response")

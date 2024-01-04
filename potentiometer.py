@@ -20,14 +20,18 @@ def initialize_potentiometer():
 	ads = ADS.ADS1115(i2c)
 	return ads
 	
-def read_potentiometer(ads):
-	chan = AnalogIn(ads, ADS.P0)
+def read_potentiometer(ads, channel = 0):
+	chan = None
+	if channel == 0:
+		chan = AnalogIn(ads, ADS.P0)
+	elif channel == 1:
+		chan = AnalogIn(ads, ADS.P1)
+	else:
+		print("Incorrect channel number")
 	val = chan.voltage
 	return voltage_to_degrees(val)
 	
 ads = initialize_potentiometer()
 
-print(read_potentiometer(ads))
-print(read_potentiometer(ads))
-#val = voltage_to_degrees(val)
-#print(val)
+print(read_potentiometer(ads, 0))
+print(read_potentiometer(ads, 1))

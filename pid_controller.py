@@ -28,7 +28,7 @@ def init():
 	return pwm
 	
 def turn_motor(sec, direction, speed, pwm):
-	if speed > 50:
+	if speed > 80:
 		print("Too fast")
 		return
 	
@@ -48,8 +48,8 @@ def turn_motor(sec, direction, speed, pwm):
 	time.sleep(sec)	
 
 # Initialize your PID controller
-pid = PID(3.5, 1.5, 1, setpoint=0)  # Example coefficients and setpoint
-pid.output_limits = (-50, 50)
+pid = PID(3.5, 0.3, 0.43, setpoint=0)  # Example coefficients and setpoint
+pid.output_limits = (-80, 80)
 
 interval = 0.01
 
@@ -68,16 +68,20 @@ try:
 	values = []
 	pwm = init()
 	ads = initialize_potentiometer()
-	alpha = 0.1
+	alpha = 0.3
 	lpf = LowPassFilter(alpha)
+	signal = []
+	signal = [i*0.02 for i in range(500)]
 	
-	for i in range(100):
+	for i in range(500):
 		time1 = time.time()
 		current_value = read_sensor(ads)
 		print("Angle: ", current_value)
 		#values.append(current_value)
 		filtered_value = lpf.update(current_value)
 		values.append(filtered_value)
+		#setpoint = signal[i]
+		#pid.setpoint = setpoint
 		control = pid(filtered_value)
 		direction = None
 		if control < 0:

@@ -4,14 +4,19 @@ import json
 import time
 import struct
 import os 
+import queue
+import threading
+import cProfile
+
+from Camera import capture_video
 
 HOST = "192.168.1.3"
 PORT = 65432
 CHUNK_SIZE = 8192
 
-folder_path = "./images/"
-if not os.path.exists(folder_path):
-	os.mkdir(folder_path)
+# = "./images/"
+#if not os.path.exists(folder_path):
+#	os.mkdir(folder_path)
 
 def receive_data(socket):
 	raw_len = socket.recv(4)
@@ -41,27 +46,46 @@ def receive_image(socket, img_size):
 				break
 			f.write(bytes_read)
 			received += len(bytes_read)
+			
+data_queue = queue.Queue()
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-	s.bind((HOST, PORT))
-	s.listen()
-	conn, addr = s.accept()
-	with conn:
-		time1 = time.perf_counter()
-		print(f"Connected by {addr}")
-		for i in range(60):
-			data = receive_data(conn)	
-			string_data = data.decode('utf-8')
-			json_data = json.loads(string_data)
-			command = json_data["command"]
-			number = json_data["number"]
-			if json_data["image"] == True:
-				img_size = json_data["img_size"]
-				receive_image(conn, img_size)
-			#result = subprocess.run(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-			#print("STDOUT:", result.stdout)
-			#print("STDERR:", result.stderr)
-			conn.sendall(str(number).encode('utf-8'))
-		print("Time to send 60 pictures: ", time.perf_counter()-time1)
+def send_thread(s):
+	while True:
+		if not data_queue.empty():
+			data = data_queue.get()
+			json_data = json.dumps(data).encode('utf-8')
+			send_data(s, json_data)
+			
+def receive_thread(s):
+	while True:
+		print("waiting for data")
+		recv_data = receive_data(s)
+		if recv_data:
+			recv_data = json.loads(recv_data.decode('utf-8'))
+			print(recv_data)
+
+def socket_communication():
+	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+		s.bind((HOST, PORT))
+		s.listen()
+		conn, addr = s.accept()
+		with conn:
+			print(f"Connected by {addr}")
+			video_thread = threading.Thread(target = capture_video, args=(data_queue,))
+			s_thread = threading.Thread(target=send_thread, args=(conn,))
+			r_thread = threading.Thread(target=receive_thread, args=(conn,))
+
+			s_thread.start()
+			r_thread.start()
+			video_thread.start()
+			
+			s_thread.join()
+			r_thread.join()
+			video_thread.join()
+			print("threads started")
+
+
+cProfile.run("socket_communication()")
+
 		
 			

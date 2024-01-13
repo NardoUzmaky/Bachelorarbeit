@@ -9,7 +9,7 @@ def init_motor1(): #x-axis
 	gpio.setup(23, gpio.OUT) #in1
 	gpio.setup(22, gpio.OUT) #in2
 	gpio.setup(24, gpio.OUT)
-	pwm = gpio.PWM(24, 1000) #EN
+	pwm = gpio.PWM(24, 300) #EN
 	pwm.start(0)
 	return pwm
 	
@@ -18,7 +18,7 @@ def init_motor2():
 	gpio.setup(19, gpio.OUT) #in1
 	gpio.setup(20, gpio.OUT) #in2
 	gpio.setup(16, gpio.OUT)
-	pwm = gpio.PWM(16, 1000) #EN
+	pwm = gpio.PWM(16, 300) #EN
 	pwm.start(0)
 	return pwm
 	
@@ -113,9 +113,9 @@ try:
 			print("Invalid direction")
 			break	
 			
-		turn_motor(interval, x_direction, abs(joystick_x*5), pwm1, 1)
-		turn_motor(interval, y_direction, abs(joystick_y*5), pwm2, 2)
-		time.sleep(interval)
+		turn_motor(interval, x_direction, abs(joystick_x*10), pwm1, 1)
+		turn_motor(interval, y_direction, abs(joystick_y*10), pwm2, 2)
+		#time.sleep(interval)
 		
 except KeyboardInterrupt:
 	print("Keyboard Interrupt")

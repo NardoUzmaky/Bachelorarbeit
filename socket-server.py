@@ -48,24 +48,34 @@ def receive_image(socket, img_size):
 			received += len(bytes_read)
 			
 data_queue = queue.Queue()
+shutdown_flag = threading.Event()
 
 def send_thread(s):
-	while True:
+	while not shutdown_flag.is_set():
+		time.sleep(0.01)
+		print("looking for data")
 		if not data_queue.empty():
-			data = data_queue.get()
-			json_data = json.dumps(data).encode('utf-8')
-			send_data(s, json_data)
+				data = data_queue.get()
+				json_data = json.dumps(data).encode('utf-8')
+				send_data(s, json_data)
 			
 def receive_thread(s):
-	while True:
-		print("waiting for data")
-		recv_data = receive_data(s)
-		if recv_data:
-			recv_data = json.loads(recv_data.decode('utf-8'))
-			print(recv_data)
+	s.settimeout(1)
+	while not shutdown_flag.is_set():
+		try:
+			print("waiting for data")
+			recv_data = receive_data(s)
+			if recv_data:
+				recv_data = json.loads(recv_data.decode('utf-8'))
+				print(recv_data)
+		except socket.timeout:
+			continue
+		except OSError:
+			break
 
 def socket_communication():
 	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+		s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		s.bind((HOST, PORT))
 		s.listen()
 		conn, addr = s.accept()
@@ -79,13 +89,18 @@ def socket_communication():
 			r_thread.start()
 			video_thread.start()
 			
+			try:
+				while video_thread.is_alive():
+					video_thread.join(timeout=1)
+				print("Video thread dead")
+			except KeyboardInterrupt:
+				print("Shutting down gracefully...")
+			shutdown_flag.set()
 			s_thread.join()
 			r_thread.join()
-			video_thread.join()
-			print("threads started")
+			print("all threads terminated")
 
-
-cProfile.run("socket_communication()")
-
+#cProfile.run("socket_communication()")
+socket_communication()
 		
 			

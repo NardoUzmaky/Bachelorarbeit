@@ -23,7 +23,7 @@ def init():
 	gpio.setup(23, gpio.OUT)
 	gpio.setup(22, gpio.OUT)
 	gpio.setup(24, gpio.OUT)
-	pwm = gpio.PWM(24, 1000) #EN
+	pwm = gpio.PWM(24, 500) #EN
 	pwm.start(0)
 	return pwm
 	
@@ -48,10 +48,10 @@ def turn_motor(sec, direction, speed, pwm):
 	time.sleep(sec)	
 
 # Initialize your PID controller
-pid = PID(3.5, 0.3, 0.43, setpoint=0)  # Example coefficients and setpoint
+pid = PID(3.5, 0.3, 0.33, setpoint=0)  # Example coefficients and setpoint
 pid.output_limits = (-80, 80)
 
-interval = 0.01
+interval = 0
 
 def read_sensor(ads):
     # Replace this with your sensor reading logic
@@ -73,13 +73,13 @@ try:
 	signal = []
 	signal = [i*0.02 for i in range(500)]
 	
-	for i in range(500):
+	for i in range(200):
 		time1 = time.time()
 		current_value = read_sensor(ads)
 		print("Angle: ", current_value)
-		#values.append(current_value)
+		values.append(current_value)
 		filtered_value = lpf.update(current_value)
-		values.append(filtered_value)
+		#values.append(filtered_value)
 		#setpoint = signal[i]
 		#pid.setpoint = setpoint
 		control = pid(filtered_value)
@@ -88,8 +88,7 @@ try:
 			direction = "forward"
 		else:
 			direction = "reverse"
-			
-			
+				
 		if direction == "forward" and current_value < -12:
 			print("stopper activated")
 			break
@@ -110,8 +109,6 @@ finally:
 	print("clean up")
 	pwm.stop()
 	gpio.cleanup()
-	#alpha = 0.15  # Adjust this to change the filtering strength
-	#lpf = LowPassFilter(alpha)
 
 	#raw_sensor_values = values
 	#filtered_values = [lpf.update(value) for value in raw_sensor_values]
@@ -122,8 +119,3 @@ finally:
 	plt.ylabel("Angle [deg]")
 	plt.show()
 	
-	
-
-
-
-#activate_motor(1 , "reverse", 3)

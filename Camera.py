@@ -24,26 +24,17 @@ def center_position(position, center):
 	
 
 def detect_position(frame, Width, Height):
-	lower_black = np.array([0, 0, 0])
-	upper_black = np.array([180, 255, 60])
-	
 	#frame = frame[90:650, 377:937]
 	frame = frame[int(.116666*Height):int(0.916666*Height), int(0.28333*Width):int(0.75*Width)]
 	#frame = frame[:, int(0.23*Width):int(0.8*Width)]
-	gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-	#hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
-	#mask = cv.inRange(hsv, lower_black, upper_black)
 	
-	#kernel = np.ones((5, 5), np.uint8)
-	#mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
+	gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 	
 	_, thresh = cv.threshold(gray, 140, 255, cv.THRESH_BINARY_INV)
 	kernel = np.ones((5, 5), np.uint8)
 	thresh = cv.morphologyEx(thresh, cv.MORPH_OPEN, kernel)
 
 	contours, _ = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-	#frame = gray
-	#print("Took a frame")
 	cx = 0
 	cy = 0
 	for contour in contours:
@@ -51,7 +42,6 @@ def detect_position(frame, Width, Height):
 		if 100 < area:
 			perimeter = cv.arcLength(contour, True)
 			circularity = 4*np.pi*area/(perimeter**2) if perimeter > 0 else 0
-			#print("here")
 			cv.drawContours(frame, [contour], -1, (0, 255, 0), 2)
 			if 0.6 < circularity < 1 and perimeter > 80:
 				M = cv.moments(contour)
@@ -59,18 +49,18 @@ def detect_position(frame, Width, Height):
 					cx = int(M['m10'] / M['m00'])
 					cy = int(M['m01'] / M['m00'])
 					cv.circle(frame, (cx, cy), 3, (255, 0, 0), -1)
-					print(f"Ball position: {cx}, {cy}")
-	cv.imshow('Frame', frame)
+					#print(f"Ball position: {cx}, {cy}")
+	#cv.imshow('Frame', frame)
 	return [cx, cy]
 
-def capture_video():
+def capture_video(data_queue = None):
 	import time 
 	cap = cv.VideoCapture(0, cv.CAP_V4L2) 
 
 	Width = 1280
 	Height = 720
 	FPS = 60
-	number_of_frames = 600
+	number_of_frames = 300
 
 	cap.set(cv.CAP_PROP_FOURCC, cv.VideoWriter_fourcc(*'MJPG'))
 	
@@ -103,20 +93,30 @@ def capture_video():
 		#print(1/(current_time-previous_time))
 		current_time = time.time()
 		ret, frame = cap.read()
+
 		if not ret:
 			print("Can't receive frame (stream end?). Exiting ...")
 			break
 		#cv.imshow('frame', frame)
 		#out.write(frame)
+		data = {}
 		current_pos = detect_position(frame, Width, Height)
-		if not previous_pos == None:
+		current_pos = center_position(current_pos, [296, 285])
+		print("Ball position: ", current_pos)
+		data["time"] = current_time
+		data["position"] = current_pos
+		if previous_pos is not None:
 			speed = calculate_speed(previous_pos, current_pos, previous_time, current_time)
 			speed = pixel2meter(speed)
-			print("Speed: ", speed)
+			data["speed"] = speed
+			#print("Speed: ", speed)
+		if data_queue:
+			data_queue.put(data)
 		previous_pos = current_pos
 		previous_time = current_time
 		if cv.waitKey(1) == ord('q'):
 			break
+		print("Time to process image: ", time.time()-previous_time)
 
 	time = time.perf_counter()-start
 	print("time :", time)
@@ -125,7 +125,6 @@ def capture_video():
 	cap.release()
 	cv.destroyAllWindows()
 	
-
-
-capture_video()
+if __name__ == "__main__":
+	capture_video()
 #print(center_position([0, 0], [296, 285]))

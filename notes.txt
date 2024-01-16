@@ -1,0 +1,38 @@
+How to change priorities of network routing (for example eth over wlan):
+
+nmcli connection modify <connection name> ipv4.route-metric 1
+
+Instead of 1 you can take any number ( the lower the number, the higher the priority)
+To get connection name type: nmcli connection
+
+Useful Commands: "v4l2-ctl --list-formats-ext" -> see which resolutions and fps are supported
+"c4l2-ctl --list-devices"
+
+Possible configuration for camera (using H.264):
+-format: NV12 -res: 1920x1080 ->fps: 30 without imwrite, 28 with
+-format: MJPG -res: 1920x1080 ->fps: ~20 without imwrite
+-format: YUYV -res: 1920x1080 ->fps: 30 without imwrite, 25 with
+-format: MJPG -res: 1280x720 ->fps: ~46 witout imwrite, 37 with 
+-format: MJPG -res: 640x480 ->fps: 90 with/without imwrite
+
+With overlocking (@2Ghz arm freq):
+format: MJPG -res: 1280x720 -> fps: 50fps without imwrite, ~40 with
+
+With overlocking (@2.1Ghz arm freq):
+format: MJPG -res: 1280x720 -> fps: 53fps without imwrite, ~41-44 with
+
+crop frame:
+	top corner: x=363, y= 70
+	square side length = 600
+
+White balance settings (only works whit lighting):
+	"v4l2-ctl -d /dev/video0 --set-ctrl white_balance_temperature=3500"
+	"v4l2-ctl -d /dev/video0 --set-ctrl white_balance_automatic=0"
+
+PID paramaters:
+	Okay performance and relatively fast but steady state error: kp = 3.5, ki = 1.5, kd = 0.55, alpha = 0.3
+	relatively slow but smaller steady state error: kp = 3.5, ki = 0.3, kd = 0.43 alpha = 0.3
+	Best so far: Very fast and no steady state error: kp=3.5, ki = 0.3, kd = 0.43
+
+Frequency for PWM Signal:
+	For PID control of the angle of the plate its better to use 500 Hz instead of 1000Hz (More smooth)

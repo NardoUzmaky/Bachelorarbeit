@@ -1,5 +1,5 @@
 from simple_pid import PID
-from potentiometer import read_potentiometer, initialize_potentiometer
+from potentiometer import read_potentiometer, init_adc_continous
 import matplotlib.pyplot as plt
 import time
 import numpy as np
@@ -43,10 +43,13 @@ class Motor:
 			
 		if new_direction == "forward" and angle < -12:
 				print("stopper activated")
-				self.update_motor(self, new_direction, 0)
+				self.update_motor(new_direction, 0)
+				return
 		elif new_direction == "reverse" and angle > 12:
 				print("stopper activated")
-				self.update_motor(self, new_direction, 0)
+				self.update_motor(new_direction, 0)
+				return
+		self.update_motor(new_direction, abs(control_input))
 				
 	def update_motor(self, direction, speed):
 		if direction == "forward":
@@ -56,11 +59,13 @@ class Motor:
 			gpio.output(self.in1, False) #In1
 			gpio.output(self.in2, True) #In2
 		else:
-			print("Enter valid Direction")
+			print("Invalid Direction")
 			return
+			
 		self.pwm.ChangeDutyCycle(speed)
 		self.speed = speed
 		self.direction = direction
+		
 	def clean_up(self):
 		self.pwm.stop()	
 		 	
@@ -82,37 +87,6 @@ def init_motor2():
 	pwm = gpio.PWM(16, 500) #EN
 	pwm.start(0)
 	return pwm
-	
-def turn_motor(direction, speed, pwm, motor=1):
-	if speed > 50:
-		print("Too fast")
-		return
-	if motor == 1:
-		if direction == "forward":
-			#print("forward")
-			gpio.output(23, True) #In1
-			gpio.output(22, False)#In2
-		elif direction == "reverse":
-			#print("reverse")
-			gpio.output(23, False) #In1
-			gpio.output(22, True)#In2
-		else:
-			print("Enter valid Direction")
-			return
-	if motor == 2:
-		if direction == "forward":
-			#print("forward")
-			gpio.output(19, True) #In1
-			gpio.output(20, False)#In2
-		elif direction == "reverse":
-			#print("reverse")
-			gpio.output(19, False) #In1
-			gpio.output(20, True)#In2
-		else:
-			print("Enter valid Direction")
-			return
-
-	pwm.ChangeDutyCycle(speed)
 
 def angle_control_loop():
 	# Initialize your PID controller
@@ -126,78 +100,35 @@ def angle_control_loop():
 	
 	try:
 		values = []
-		#pwm1 = init_motor1()
-		#pwm2 = init_motor2()
+
 		x_motor = Motor(1)
 		y_motor = Motor(2)
-		ads = initialize_potentiometer()
+		x_adc = init_adc_continous(1)
+		y_adc = init_adc_continous(2)
 		alpha = 0.3
 		lpf = LowPassFilter(alpha)
 		
 		while not shutdown_flag.is_set():
 			time1 = time.time()
-			x_angle = read_potentiometer(ads, 0)
-			y_angle = read_potentiometer(ads, 1)
-			#print("Angle: ", current_value)
-			#values.append(current_value)
-			#filtered_value = lpf.update(current_value)
-			#values.append(filtered_value)
+			time.sleep(0.005)
+			x_angle = read_potentiometer(x_adc, 1)
+			y_angle = read_potentiometer(y_adc, 2)
+
 			x_pid.setpoint = x_setpoint
 			y_pid.setpoint = y_setpoint
 			
 			x_control = x_pid(x_angle)
 			y_control = y_pid(y_angle)
-			"""
-			x_direction = None
-			y_direction = None
-			if x_control < 0:
-				x_direction = "forward"
-			else:
-				x_direction = "reverse"
-			if y_control < 0:
-				y_direction = "forward"
-			else:
-				y_direction = "reverse"
-					
-			if x_direction == "forward" and x_angle < -12:
-				print("stopper activated")
-				turn_motor(x_direction, 0, pwm1, 1)
-				continue
-			elif x_direction == "reverse" and x_angle > 12:
-				print("stopper activated")
-				turn_motor(x_direction, 0, pwm1, 1)
-				continue
-			elif x_direction == None:
-				print("Invalid direction")
-				break
-				
-			if y_direction == "forward" and y_angle < -12:
-				print("stopper activated")
-				turn_motor(y_direction, 0, pwm2, 2)
-				continue
-			elif y_direction == "reverse" and y_angle > 12:
-				print("stopper activated")
-				turn_motor(y_direction, 0, pwm2, 2)
-				continue
-			elif y_direction == None:
-				print("Invalid direction")
-				break	
-			turn_motor(x_direction, abs(x_control), pwm1, 1)
-			turn_motor(y_direction, abs(y_control), pwm2, 2)
-			"""
+			print("speed: ", x_control, y_control)
+
 			x_motor.update(x_control, x_angle)
 			y_motor.update(y_control, y_angle)
-			time.sleep(0.01)
 			print("1 Loop Time: ", time.time()-time1)
 			
 	except KeyboardInterrupt:
 		print("Keyboard Interrupt")
-	except Exception as e:
-		print(e)
 	finally:
 		print("clean up")
-		#pwm1.stop()
-		#pwm2.stop()
 		gpio.cleanup()
 		x_motor.clean_up()
 		y_motor.clean_up()
@@ -217,25 +148,28 @@ y_setpoint = 0
 def ball_position_loop():
 	global x_setpoint
 	global y_setpoint
-	x_ball_pid = PID(1, 1, 1, setpoint = 0)
-	x_ball_pid.output_limits = (-14, 14)
+	x_ball_pid = PID(1000, 0, 0, setpoint = 0)
+	x_ball_pid.output_limits = (-10, 10)
 	
-	y_ball_pid = PID(1, 1, 1, setpoint = 0)
-	y_ball_pid.output_limits = (-14, 14)
+	y_ball_pid = PID(1000, 0, 0, setpoint = 0)
+	y_ball_pid.output_limits = (-10, 10)
 	
 	while not shutdown_flag.is_set():
-		time.sleep(0.01)
+		time.sleep(0.001)
 		if not data_queue.empty():
 			data = data_queue.get()
-			print("POSITION: ", data["position"])
+			print("Delay: ", time.time()-data["time"])
+			#print("POSITION: ", data["position"])
 			x_pos = data["position"][0]
 			y_pos = data["position"][1]
 			#x_vel = data["speed"][0]
 			#y_vel = data["speed"][1]
 			x_setpoint = x_ball_pid(x_pos)
 			y_setpoint = y_ball_pid(y_pos)
+			#print("Setpoint: ", x_setpoint)	
+
 			
-if __name__ == "__main__":			
+if __name__ == "__main__":		
 	video_thread = threading.Thread(target = capture_video, args=(data_queue,))
 	angle_loop_thread = threading.Thread(target = angle_control_loop)
 	ball_control_thread = threading.Thread(target = ball_position_loop)
@@ -244,10 +178,11 @@ if __name__ == "__main__":
 	angle_loop_thread.start()
 	ball_control_thread.start()
 	try:
-		while True:
-			time.sleep(0.1)
+		while video_thread.is_alive():
+			video_thread.join(timeout=1)
+		print("Video thread dead")
 	except KeyboardInterrupt:
-		shutdown_flag.set()
-	video_thread.join()
+		print("Shutting down gracefully...")
+	shutdown_flag.set()
 	angle_loop_thread.join()
 	ball_control_thread.join()

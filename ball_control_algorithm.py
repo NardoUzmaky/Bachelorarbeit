@@ -88,12 +88,19 @@ def init_motor2():
 	pwm.start(0)
 	return pwm
 
+ball_position = [] 
+ball_position_times = []
+measured_angles = []
+measured_angles_times = []
+reference_angles = []
+reference_angles_times = []
+
 def angle_control_loop():
 	# Initialize your PID controller
 	x_pid = PID(3.5, 0.3, 0.33, setpoint=0)  # Example coefficients and setpoint
 	y_pid = PID(3.5, 0.3, 0.33, setpoint=0)
-	x_pid.output_limits = (-10, 10)
-	y_pid.output_limits = (-10, 10)
+	x_pid.output_limits = (-20, 20)
+	y_pid.output_limits = (-20, 20)
 	interval = 0
 	global x_setpoint
 	global y_setpoint
@@ -109,21 +116,24 @@ def angle_control_loop():
 		lpf = LowPassFilter(alpha)
 		
 		while not shutdown_flag.is_set():
-			time1 = time.time()
-			time.sleep(0.005)
+			#time1 = time.time()
+			time.sleep(0.001)
 			x_angle = read_potentiometer(x_adc, 1)
 			y_angle = read_potentiometer(y_adc, 2)
-
+			
+			measured_angles_times.append(time.time())
+			measured_angles.append(x_angle)
+			
 			x_pid.setpoint = x_setpoint
 			y_pid.setpoint = y_setpoint
-			
+			print(x_setpoint)
 			x_control = x_pid(x_angle)
 			y_control = y_pid(y_angle)
-			print("speed: ", x_control, y_control)
+			#print("speed: ", x_control, y_control)
 
 			x_motor.update(x_control, x_angle)
 			y_motor.update(y_control, y_angle)
-			print("1 Loop Time: ", time.time()-time1)
+			#print("1 Loop Time: ", time.time()-time1)
 			
 	except KeyboardInterrupt:
 		print("Keyboard Interrupt")
@@ -148,25 +158,29 @@ y_setpoint = 0
 def ball_position_loop():
 	global x_setpoint
 	global y_setpoint
-	x_ball_pid = PID(1000, 0, 0, setpoint = 0)
+	x_ball_pid = PID(5, 10, 1, setpoint = 0)
 	x_ball_pid.output_limits = (-10, 10)
 	
-	y_ball_pid = PID(1000, 0, 0, setpoint = 0)
+	y_ball_pid = PID(5, 10, 1, setpoint = 0)
 	y_ball_pid.output_limits = (-10, 10)
 	
 	while not shutdown_flag.is_set():
-		time.sleep(0.001)
+		time.sleep(0.01)
 		if not data_queue.empty():
 			data = data_queue.get()
-			print("Delay: ", time.time()-data["time"])
+			#print("Delay: ", time.time()-data["time"])
 			#print("POSITION: ", data["position"])
 			x_pos = data["position"][0]
 			y_pos = data["position"][1]
+			ball_position.append(x_pos)
+			ball_position_times.append(data["time"])
 			#x_vel = data["speed"][0]
 			#y_vel = data["speed"][1]
 			x_setpoint = x_ball_pid(x_pos)
 			y_setpoint = y_ball_pid(y_pos)
-			#print("Setpoint: ", x_setpoint)	
+			reference_angles_times.append(time.time())
+			reference_angles.append(x_setpoint)
+			print("Setpoint: ", x_setpoint)	
 
 			
 if __name__ == "__main__":		
@@ -186,3 +200,17 @@ if __name__ == "__main__":
 	shutdown_flag.set()
 	angle_loop_thread.join()
 	ball_control_thread.join()
+	start_point = measured_angles_times[0]
+
+	measured_angles_times = [x - start_point for x in measured_angles_times]
+	reference_angles_times = [x - start_point for x in reference_angles_times]
+	ball_position_times = [x - start_point for x in ball_position_times]
+	ball_position = [x*10 for x in ball_position]
+
+	plt.plot(measured_angles_times, measured_angles, color='green')
+	plt.plot(reference_angles_times, reference_angles, color='red')
+	plt.plot(ball_position_times, ball_position, color='blue')
+	plt.title("Reference Angle vs Measured Angle")
+	plt.xlabel("Time [s]")
+	plt.ylabel("Angle [deg]")
+	plt.show()

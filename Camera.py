@@ -4,6 +4,7 @@ import subprocess
 import time
 import numpy as np
 
+np.set_printoptions(precision=2)
 #Takes inputs as vector [x, y] in pixels:
 #Outputs speed as vector [v_x, v_y] in pixels/second:
 def calculate_speed(pos1, pos2, time1, time2):
@@ -60,7 +61,7 @@ def capture_video(data_queue = None):
 	Width = 1280
 	Height = 720
 	FPS = 60
-	number_of_frames = 300
+	number_of_frames = 3000
 
 	cap.set(cv.CAP_PROP_FOURCC, cv.VideoWriter_fourcc(*'MJPG'))
 	
@@ -88,7 +89,6 @@ def capture_video(data_queue = None):
 	previous_pos = None
 	
 	for i in range(number_of_frames):
-		#capture frame by frame
 		
 		#print(1/(current_time-previous_time))
 		current_time = time.time()
@@ -102,21 +102,25 @@ def capture_video(data_queue = None):
 		data = {}
 		current_pos = detect_position(frame, Width, Height)
 		current_pos = center_position(current_pos, [296, 285])
-		print("Ball position: ", current_pos)
-		data["time"] = current_time
+		current_pos = pixel2meter(current_pos)
+		formatted_list = [format(num, ".2f") for num in current_pos]
+		print("Ball position: ", formatted_list)
+		data["time"] = time.time()#current_time
 		data["position"] = current_pos
-		if previous_pos is not None:
+		if i is not 0:
 			speed = calculate_speed(previous_pos, current_pos, previous_time, current_time)
-			speed = pixel2meter(speed)
+			#speed = pixel2meter(speed)
 			data["speed"] = speed
 			#print("Speed: ", speed)
+		else:
+			data["speed"] = [0, 0]
 		if data_queue:
 			data_queue.put(data)
 		previous_pos = current_pos
 		previous_time = current_time
 		if cv.waitKey(1) == ord('q'):
 			break
-		print("Time to process image: ", time.time()-previous_time)
+		#print("Time to process image: ", time.time()-previous_time)
 
 	time = time.perf_counter()-start
 	print("time :", time)

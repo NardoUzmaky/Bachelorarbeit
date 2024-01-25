@@ -38,13 +38,13 @@ def init_adc_continous(axis): #axis = 1: adc for potentiometer of x-axis, axis =
 	i2c = busio.I2C(board.SCL, board.SDA)
 	if axis == 1:
 		ads = ADS.ADS1115(i2c) #this will take the default address of the ADS1115, which is 0x48
-		ads.data_rate = 128
+		ads.data_rate = 860
 		ads.mode = ADS.Mode.CONTINUOUS
 		chan = AnalogIn(ads, ADS.P0)
 		return chan # get voltage with chan.voltage
 	if axis == 2:
 		ads = ADS.ADS1115(i2c, address = 0x49) #to connect a second ADC we need to specify an address
-		ads.data_rate = 128
+		ads.data_rate = 860
 		ads.mode = ADS.Mode.CONTINUOUS
 		chan = AnalogIn(ads, ADS.P0)
 		return chan

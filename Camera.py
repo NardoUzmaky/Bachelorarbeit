@@ -36,8 +36,7 @@ def detect_position(frame, Width, Height):
 	thresh = cv.morphologyEx(thresh, cv.MORPH_OPEN, kernel)
 
 	contours, _ = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-	cx = 0
-	cy = 0
+
 	for contour in contours:
 		area = cv.contourArea(contour)
 		if 100 < area:
@@ -50,9 +49,10 @@ def detect_position(frame, Width, Height):
 					cx = int(M['m10'] / M['m00'])
 					cy = int(M['m01'] / M['m00'])
 					cv.circle(frame, (cx, cy), 3, (255, 0, 0), -1)
+					return [cx, cy]
 					#print(f"Ball position: {cx}, {cy}")
 	#cv.imshow('Frame', frame)
-	return [cx, cy]
+	return
 
 def capture_video(data_queue = None):
 	import time 
@@ -86,7 +86,7 @@ def capture_video(data_queue = None):
 	cap.read()
 	start = time.perf_counter()
 	previous_time = time.time()
-	previous_pos = None
+	previous_pos = [0, 0]
 	
 	for i in range(number_of_frames):
 		
@@ -101,19 +101,25 @@ def capture_video(data_queue = None):
 		#out.write(frame)
 		data = {}
 		current_pos = detect_position(frame, Width, Height)
-		current_pos = center_position(current_pos, [296, 285])
-		current_pos = pixel2meter(current_pos)
-		formatted_list = [format(num, ".2f") for num in current_pos]
-		print("Ball position: ", formatted_list)
-		data["time"] = time.time()#current_time
-		data["position"] = current_pos
-		if i is not 0:
+		if current_pos is not None:
+			current_pos = center_position(current_pos, [296, 285])
+			current_pos = pixel2meter(current_pos)
+			formatted_list = [format(num, ".2f") for num in current_pos]
+			print("Ball position: ", formatted_list)
+			data["time"] = time.time()#current_time
+			data["position"] = current_pos
+		else:
+			print("Could not find Ball")
+			current_pos = previous_pos
+			data["time"] = time.time()
+			data["position"] = previous_pos
+
+		if i != 0 and current_pos is not None:
 			speed = calculate_speed(previous_pos, current_pos, previous_time, current_time)
-			#speed = pixel2meter(speed)
 			data["speed"] = speed
-			#print("Speed: ", speed)
 		else:
 			data["speed"] = [0, 0]
+		#print(data)
 		if data_queue:
 			data_queue.put(data)
 		previous_pos = current_pos

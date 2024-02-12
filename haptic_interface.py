@@ -1,64 +1,64 @@
 import pygame
-import RPi.GPIO as gpio
-from potentiometer import read_potentiometer, initialize_potentiometer
+#from potentiometer import read_potentiometer, initialize_potentiometer
 import time
+from gpiozero import OutputDevice, PWMOutputDevice
+from gpiozero.pins.lgpio import LGPIOFactory as pin_factory
 
+factory = pin_factory()
 
-def init_motor1(): #x-axis
-	gpio.setmode(gpio.BCM)
-	gpio.setup(23, gpio.OUT) #in1
-	gpio.setup(22, gpio.OUT) #in2
-	gpio.setup(24, gpio.OUT)
-	pwm = gpio.PWM(24, 300) #EN
-	pwm.start(0)
-	return pwm
-	
-def init_motor2():
-	gpio.setmode(gpio.BCM)
-	gpio.setup(19, gpio.OUT) #in1
-	gpio.setup(20, gpio.OUT) #in2
-	gpio.setup(16, gpio.OUT)
-	pwm = gpio.PWM(16, 300) #EN
-	pwm.start(0)
-	return pwm
-	
-def turn_motor(sec, direction, speed, pwm, motor=1):
-	if speed > 10:
-		print("Too fast")
-		return
-	if motor == 1:
-		if direction == "forward":
-			#print("forward")
-			gpio.output(23, True) #In1
-			gpio.output(22, False)#In2
-		elif direction == "reverse":
-			#print("reverse")
-			gpio.output(23, False) #In1
-			gpio.output(22, True)#In2
-		else:
-			print("Enter valid Direction")
-			return
-	if motor == 2:
-		if direction == "forward":
-			#print("forward")
-			gpio.output(19, True) #In1
-			gpio.output(20, False)#In2
-		elif direction == "reverse":
-			#print("reverse")
-			gpio.output(19, False) #In1
-			gpio.output(20, True)#In2
-		else:
-			print("Enter valid Direction")
-			return
+class MotorControl:
+    def __init__(self, axis):
+        if axis == 1: # Initialize Motor for axis 1
+            self.pin1 = OutputDevice(20, pin_factory=factory) #if pin1 = 1 and pin2 = 0: motor turns forward
+            self.pin2 = OutputDevice(21, pin_factory=factory)
+            self.pwm = PWMOutputDevice(26, frequency=500, pin_factory=factory)
+        elif axis == 2:  # Initialize Motor for axis 2
+            self.pin1 = OutputDevice(6, pin_factory=factory)
+            self.pin2 = OutputDevice(13, pin_factory=factory)
+            self.pwm = PWMOutputDevice(12, frequency=500, pin_factory=factory)
+        else:
+            raise ValueError(f"Invalid axis: {axis}")
+        self.direction = None
+        self.speed = 0
 
-	pwm.ChangeDutyCycle(speed)
-	#time.sleep(sec)	
-    
+    def update(self, control_input, angle):
+        new_speed = abs(control_input) / 100  # Assuming control_input is a percentage
+
+        if control_input < 0:
+            new_direction = "forward"
+        else:
+            new_direction = "reverse"
+
+        if (new_direction == "forward" and angle < -12) or (new_direction == "reverse" and angle > 12):
+            print("stopper activated")
+            self.pwm.value = 0
+            return
+
+        self.update_motor(new_direction, new_speed)
+
+    def update_motor(self, direction, speed):
+        if direction == "forward":
+            self.pin1.on()
+            self.pin2.off()
+        elif direction == "reverse":
+            self.pin1.off()
+            self.pin2.on()
+        else:
+            raise ValueError("Invalid Direction")
+            
+        self.pwm.value = speed
+        self.speed = speed
+        self.direction = direction
+
+    def clean_up(self):
+        self.pwm.close()
+        self.pin1.close()
+        self.pin2.close()
 try:
 	interval = 0.01
-	pwm1 = init_motor1()
-	pwm2 = init_motor2()
-	ads = initialize_potentiometer()
+	x_motor = MotorControl(1)
+	y_motor = MotorControl(2)
+	#ads = initialize_potentiometer()
 	# Initialize Pygame and the joystick
 	pygame.init()
 	pygame.joystick.init()
@@ -68,54 +68,21 @@ try:
 	joystick.init()
 	
 	for i in range(10000):
-		x_angle = read_potentiometer(ads, 0)
-		y_angle = read_potentiometer(ads, 1)
+		#x_angle = read_potentiometer(ads, 0)
+		#y_angle = read_potentiometer(ads, 1)
+		x_angle = 0
+		y_angle = 0
 		print("Angles: ", x_angle, y_angle)
 		
 		pygame.event.pump()
-		joystick_x = joystick.get_axis(3)
-		joystick_y = joystick.get_axis(4)*(-1)
+		joystick_x = joystick.get_axis(2)*(-1)
+		joystick_y = joystick.get_axis(3)
 		print(joystick_x, joystick_y)
 		
-		x_direction = None
-		y_direction = None
-		if joystick_x < 0:
-			x_direction = "forward"
-		else:
-			x_direction = "reverse"
-		if joystick_y < 0:
-			y_direction = "forward"
-		else:
-			y_direction = "reverse"
+		x_motor.update(joystick_x*10, 0)
+		y_motor.update(joystick_y*10, 0)
 			
-			
-		if x_direction == "forward" and x_angle < -12:
-			print("stopper activated")
-			turn_motor(interval, x_direction, 0, pwm1, 1)
-			continue
-		elif x_direction == "reverse" and x_angle > 12:
-			print("stopper activated")
-			turn_motor(interval, x_direction, 0, pwm1, 1)
-			continue
-		elif x_direction == None:
-			print("Invalid direction")
-			break
-			
-		if y_direction == "forward" and y_angle < -12:
-			print("stopper activated")
-			turn_motor(interval, y_direction, 0, pwm2, 2)
-			continue
-		elif y_direction == "reverse" and y_angle > 12:
-			print("stopper activated")
-			turn_motor(interval, y_direction, 0, pwm2, 2)
-			continue
-		elif y_direction == None:
-			print("Invalid direction")
-			break	
-			
-		turn_motor(interval, x_direction, abs(joystick_x*10), pwm1, 1)
-		turn_motor(interval, y_direction, abs(joystick_y*10), pwm2, 2)
-		#time.sleep(interval)
+		time.sleep(interval)
 		
 except KeyboardInterrupt:
 	print("Keyboard Interrupt")
@@ -124,7 +91,6 @@ except Exception as e:
 finally:
 	print("clean up")
 	pygame.quit()
-	pwm1.stop()
-	pwm2.stop()
-	gpio.cleanup()
+	x_motor.clean_up()
+	y_motor.clean_up()
 	

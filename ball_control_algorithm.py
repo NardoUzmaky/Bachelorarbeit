@@ -95,10 +95,10 @@ y_setpoint = 0
 def ball_position_loop():
 	global x_setpoint
 	global y_setpoint
-	x_ball_pid = PID(20, 5, 0.1, setpoint = 0)
+	x_ball_pid = PID(20, 6, 0.1, setpoint = 0)
 	x_ball_pid.output_limits = (-10, 10)
 	
-	y_ball_pid = PID(20, 5, 0.1, setpoint = 0)
+	y_ball_pid = PID(20, 6, 0.1, setpoint = 0)
 	y_ball_pid.output_limits = (-10, 10)
 	
 	x_lowpass = LowPassFilter(0.5)
@@ -166,7 +166,7 @@ if __name__ == "__main__":
 	ax1.plot(reference_angles_times, reference_angles, color='red')
 	ax2 = ax1.twinx()
 	ax2.plot(ball_position_times, ball_position, color='blue')
-	ax2.plot(velocities_times, velocities, color='pink')
+	#ax2.plot(velocities_times, velocities, color='pink')
 	plt.title("Reference Angle vs Measured Angle")
 	ax1.set_xlabel("Time [s]")
 	ax1.set_ylabel("Angle [deg]")

@@ -9,11 +9,11 @@ class MotorControl:
         if axis == 1: # Initialize Motor for axis 1
             self.pin1 = OutputDevice(20, pin_factory=factory) #if pin1 = 1 and pin2 = 0: motor turns forward
             self.pin2 = OutputDevice(21, pin_factory=factory)
-            self.pwm = PWMOutputDevice(26, frequency=5000, pin_factory=factory)
+            self.pwm = PWMOutputDevice(26, frequency=500, pin_factory=factory)
         elif axis == 2:  # Initialize Motor for axis 2
             self.pin1 = OutputDevice(6, pin_factory=factory)
             self.pin2 = OutputDevice(13, pin_factory=factory)
-            self.pwm = PWMOutputDevice(12, frequency=5000, pin_factory=factory)
+            self.pwm = PWMOutputDevice(12, frequency=500, pin_factory=factory)
         else:
             raise ValueError(f"Invalid axis: {axis}")
         self.direction = None
@@ -22,12 +22,12 @@ class MotorControl:
     def update(self, control_input, angle):
         new_speed = abs(control_input) / 100  # Assuming control_input is a percentage
 
-        if control_input < 0:
+        if control_input > 0:
             new_direction = "forward"
         else:
             new_direction = "reverse"
 
-        if (new_direction == "forward" and angle < -12) or (new_direction == "reverse" and angle > 12):
+        if (new_direction == "forward" and angle > 12) or (new_direction == "reverse" and angle < -12):
             print("stopper activated")
             self.pwm.value = 0
             return
@@ -57,8 +57,8 @@ class MotorControl:
 if __name__ == "__main__":
     y_motor = None
     try:
-        y_motor = MotorControl(2)
-        y_motor.update_motor("forward", 0.2)  # Using 0.5 for 50% speed
+        y_motor = MotorControl(1)
+        y_motor.update_motor("reverse", 0.1)  # Using 0.5 for 50% speed
         time.sleep(0.5)
     except KeyboardInterrupt:
         print("Keyboard Interrupt")

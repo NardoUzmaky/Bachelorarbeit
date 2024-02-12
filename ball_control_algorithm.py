@@ -1,12 +1,14 @@
-from simple_pid import PID
+from Camera import capture_video
+from motordriverboard import MotorControl
 from potentiometer import read_potentiometer, init_adc_continous
+from simple_pid import PID
 import matplotlib.pyplot as plt
 import time
 import numpy as np
 import RPi.GPIO as gpio
 import queue
 import threading
-from Camera import capture_video
+from motordriverboard import MotorControl
 
 class LowPassFilter:
     def __init__(self, alpha):
@@ -20,73 +22,6 @@ class LowPassFilter:
             self.filtered_value = self.alpha * new_value + (1 - self.alpha) * self.filtered_value
         return self.filtered_value
 
-class Motor:
-	def __init__(self, axis):
-		if axis == 1:
-			self.pwm = init_motor1()
-			self.in1 = 23
-			self.in2 = 22
-		elif axis == 2:
-			self.pwm = init_motor2()
-			self.in1 = 19
-			self.in2 = 20
-		else:
-			raise ValueError(f"Invalid axis: {axis}")
-		self.direction = None
-		self.speed = 0
-		
-	def update(self, control_input, angle):
-		if control_input < 0:
-			new_direction = "forward"
-		else:
-			new_direction = "reverse"
-			
-		if new_direction == "forward" and angle < -12:
-				print("stopper activated")
-				self.update_motor(new_direction, 0)
-				return
-		elif new_direction == "reverse" and angle > 12:
-				print("stopper activated")
-				self.update_motor(new_direction, 0)
-				return
-		self.update_motor(new_direction, abs(control_input))
-				
-	def update_motor(self, direction, speed):
-		if direction == "forward":
-			gpio.output(self.in1, True) #In1
-			gpio.output(self.in2, False) #In2
-		elif direction == "reverse":
-			gpio.output(self.in1, False) #In1
-			gpio.output(self.in2, True) #In2
-		else:
-			print("Invalid Direction")
-			return
-			
-		self.pwm.ChangeDutyCycle(speed)
-		self.speed = speed
-		self.direction = direction
-		
-	def clean_up(self):
-		self.pwm.stop()	
-		 	
-
-def init_motor1(): #x-axis
-	gpio.setmode(gpio.BCM)
-	gpio.setup(23, gpio.OUT) #in1
-	gpio.setup(22, gpio.OUT) #in2
-	gpio.setup(24, gpio.OUT)
-	pwm = gpio.PWM(24, 500) #EN
-	pwm.start(0)
-	return pwm
-	
-def init_motor2():
-	gpio.setmode(gpio.BCM)
-	gpio.setup(19, gpio.OUT) #in1
-	gpio.setup(20, gpio.OUT) #in2
-	gpio.setup(16, gpio.OUT)
-	pwm = gpio.PWM(16, 500) #EN
-	pwm.start(0)
-	return pwm
 
 ball_position = [] 
 ball_position_times = []
@@ -101,8 +36,8 @@ def angle_control_loop():
 	# Initialize your PID controller
 	x_pid = PID(7, 0.6, 0.66, setpoint=0)  # Example coefficients and setpoint
 	y_pid = PID(7, 0.6, 0.66, setpoint=0)
-	x_pid.output_limits = (-10, 10)
-	y_pid.output_limits = (-10, 10)
+	x_pid.output_limits = (-15, 15)
+	y_pid.output_limits = (-15, 15)
 	interval = 0
 	global x_setpoint
 	global y_setpoint
@@ -110,8 +45,8 @@ def angle_control_loop():
 	try:
 		values = []
 
-		x_motor = Motor(1)
-		y_motor = Motor(2)
+		x_motor = MotorControl(1)
+		y_motor = MotorControl(2)
 		x_adc = init_adc_continous(1)
 		y_adc = init_adc_continous(2)
 		alpha = 0.3
@@ -122,6 +57,7 @@ def angle_control_loop():
 			time.sleep(0.001)
 			x_angle = read_potentiometer(x_adc, 1)
 			y_angle = read_potentiometer(y_adc, 2)
+			#print("ANGLE: ", x_angle)
 			
 			measured_angles_times.append(time.time())
 			measured_angles.append(x_angle)
@@ -168,7 +104,7 @@ def ball_position_loop():
 	x_lowpass = LowPassFilter(0.5)
 	y_lowpass = LowPassFilter(0.5)
 	while not shutdown_flag.is_set():
-		time.sleep(0.01)
+		time.sleep(0.001)
 		if not data_queue.empty():
 			data = data_queue.get()
 			#print("Delay: ", time.time()-data["time"])
@@ -183,13 +119,13 @@ def ball_position_loop():
 			velocities.append(x_vel)
 			velocities_times.append(data["time"])
 			print("speed: ", x_vel)
-			x_setpoint = x_ball_pid(x_pos)- x_vel*12
+			x_setpoint = x_ball_pid(x_pos)- x_vel*15
 			if x_setpoint>10:
 				x_setpoint = 10
 			elif x_setpoint<-10:
 				x_setpoint= -10
 				
-			y_setpoint = y_ball_pid(y_pos) -y_vel*12
+			y_setpoint = y_ball_pid(y_pos) -y_vel*15
 			if y_setpoint>10:
 				y_setpoint = 10
 			elif y_setpoint<-10:
@@ -222,15 +158,19 @@ if __name__ == "__main__":
 	reference_angles_times = [x - start_point for x in reference_angles_times]
 	ball_position_times = [x - start_point for x in ball_position_times]
 	velocities_times = [x-start_point for x in velocities_times]
-	velocities = [x*10 for x in velocities]
-	ball_position = [x*10 for x in ball_position]
+	#velocities = [x*10 for x in velocities]
+	#ball_position = [x*10 for x in ball_position]
 
-	plt.plot(measured_angles_times, measured_angles, color='green')
-	plt.plot(reference_angles_times, reference_angles, color='red')
-	plt.plot(ball_position_times, ball_position, color='blue')
-	plt.plot(velocities_times, velocities, color='pink')
+	fig, ax1 = plt.subplots()
+	ax1.plot(measured_angles_times, measured_angles, color='green')
+	ax1.plot(reference_angles_times, reference_angles, color='red')
+	ax2 = ax1.twinx()
+	ax2.plot(ball_position_times, ball_position, color='blue')
+	ax2.plot(velocities_times, velocities, color='pink')
 	plt.title("Reference Angle vs Measured Angle")
-	plt.xlabel("Time [s]")
-	plt.ylabel("Angle [deg]")
-	plt.ylim(-10, 10) 
+	ax1.set_xlabel("Time [s]")
+	ax1.set_ylabel("Angle [deg]")
+	ax2.set_ylabel("Distance from Center [m]")
+	ax1.set_ylim(12, -12)
+	ax2.set_ylim(-0.35, 0.35) 
 	plt.show()

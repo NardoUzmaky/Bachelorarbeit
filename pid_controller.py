@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import time
 import numpy as np
 import RPi.GPIO as gpio
+from motordriverboard import MotorControl
 
 class LowPassFilter:
     def __init__(self, alpha):
@@ -84,37 +85,18 @@ def init_motor2():
 	pwm = gpio.PWM(16, 500) #EN
 	pwm.start(0)
 	return pwm
-	
-def turn_motor(sec, direction, speed, pwm):
-	if speed > 80:
-		print("Too fast")
-		return
-	
-	if direction == "forward":
-		#print("forward")
-		gpio.output(23, True) #In1
-		gpio.output(22, False)#In2
-	elif direction == "reverse":
-		#print("reverse")
-		gpio.output(23, False) #In1
-		gpio.output(22, True)#In2
-	else:
-		print("Enter valid Direction")
-		return
-
-	pwm.ChangeDutyCycle(speed)
-	time.sleep(sec)	
 
 # Initialize your PID controller
-pid = PID(3.5, 0.3, 0.33, setpoint=0)  # Example coefficients and setpoint
-pid.output_limits = (-10, 10)
+pid = PID(3.5, 0.3, 0.42, setpoint=0)  # Example coefficients and setpoint
+pid.output_limits = (-20, 20)
 
 interval = 0
 	
 try:
+	time_points = []
 	values = []
-	motor = Motor(1)
-	adc = init_adc_continous(motor.axis)
+	motor = MotorControl(1)
+	adc = init_adc_continous(1)
 	alpha = 0.3
 	lpf = LowPassFilter(alpha)
 	signal = []
@@ -122,7 +104,8 @@ try:
 	
 	for i in range(20000):
 		time1 = time.time()
-		current_value = read_potentiometer(adc, motor.axis)
+		current_value = read_potentiometer(adc, 1)
+		time_points.append(time1)
 		print("Angle: ", current_value)
 		values.append(current_value)
 		filtered_value = lpf.update(current_value)
@@ -131,7 +114,6 @@ try:
 		#pid.setpoint = setpoint
 		control = pid(filtered_value)
 		motor.update(control, current_value)
-		#update_actuator(control, direction, pwm)
 		print("1 Loop Time: ", time.time()-time1)
 		
 except KeyboardInterrupt:
@@ -140,14 +122,10 @@ except Exception as e:
 	print(e)
 finally:
 	print("clean up")
-	#pwm.stop()
 	motor.clean_up()
-	gpio.cleanup()
 
-	#raw_sensor_values = values
-	#filtered_values = [lpf.update(value) for value in raw_sensor_values]
-	time = np.linspace(0, (len(values)-1)*0.01, len(values))
-	plt.plot(time, values)
+	time_points = [x - time_points[0] for x in time_points]
+	plt.plot(time_points, values)
 	plt.title("Step response")
 	plt.xlabel("Time [s]")
 	plt.ylabel("Angle [deg]")

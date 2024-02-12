@@ -8,20 +8,20 @@ import math
 # need to calibrate these values
 # 0 degrees: 1.64 Volts
 # 11 degrees: 2.0836 Volts
-# -14.35 degrees: 1.069 Volts
+
 #x-axis:
-v0_x = 1.64 
-v1_x = 2.086
+v0_x = 1.647 
+v1_x = 2.092
 #y-axis:
-v0_y = 1.65
-v1_y = 2.187
+v0_y = 1.647
+v1_y = 2.182
 def voltage_to_degrees_x(voltage):
 	return (11)*(voltage - v0_x)/(v1_x - v0_x)
 	
 def voltage_to_degrees_y(voltage):
 	return (11)*(voltage - v0_y)/(v1_y - v0_y)
 	
-def initialize_potentiometer():
+def initialize_potentiometer(): # for connecting multiple inputs to one ADC
 	i2c = busio.I2C(board.SCL, board.SDA)
 	ads = ADS.ADS1115(i2c)
 	return ads
@@ -59,11 +59,8 @@ if __name__ == "__main__":
 	try:
 		while True:
 			time1 = time.time()
-			print(chan.voltage)
-			print("TIME: ", time.time()-time1)
+			#print(chan.voltage)
+			print(read_potentiometer(chan, 2))
+			#print("TIME: ", time.time()-time1)
 	except KeyboardInterrupt:
 		print("interpupt")
-	
-	#print(read_potentiometer(ads, 0))
-	#print(read_potentiometer(ads, 1))
-

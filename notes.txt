@@ -40,3 +40,5 @@ Frequency for PWM Signal:
 To measure potentiometers many times a second: 
 	Set it to continuous mode using "ads.mode = ADS.Mode.CONTINUOUS". This sets the ADC to always read the input value at a specified rate and the putting the result into
 	a register than can be read at anytime and very quickly. However using this method we can only connect one potentiometer. So we need two ADCs.	
+
+Best parameters for circle tracking: Kp = 20, Ki = 0, Kd =0.1, vel_factor = 15

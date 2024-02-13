@@ -36,8 +36,8 @@ def angle_control_loop():
 	# Initialize your PID controller
 	x_pid = PID(7, 0.6, 0.66, setpoint=0)  # Example coefficients and setpoint
 	y_pid = PID(7, 0.6, 0.66, setpoint=0)
-	x_pid.output_limits = (-15, 15)
-	y_pid.output_limits = (-15, 15)
+	x_pid.output_limits = (-45, 45)
+	y_pid.output_limits = (-45, 45)
 	interval = 0
 	global x_setpoint
 	global y_setpoint
@@ -95,18 +95,22 @@ y_setpoint = 0
 def ball_position_loop():
 	global x_setpoint
 	global y_setpoint
-	x_ball_pid = PID(20, 6, 0.1, setpoint = 0)
+	x_ball_pid = PID(20, 0, 1, setpoint = 0)
 	x_ball_pid.output_limits = (-10, 10)
 	
-	y_ball_pid = PID(20, 6, 0.1, setpoint = 0)
+	y_ball_pid = PID(20, 0, 1, setpoint = 0)
 	y_ball_pid.output_limits = (-10, 10)
 	
 	x_lowpass = LowPassFilter(0.5)
 	y_lowpass = LowPassFilter(0.5)
+	start_time = time.time()
 	while not shutdown_flag.is_set():
 		time.sleep(0.001)
 		if not data_queue.empty():
 			data = data_queue.get()
+			current_time = time.time()
+			#x_ball_pid.setpoint = 0.15*np.sin(current_time-start_time)
+			#y_ball_pid.setpoint = 0.15*np.cos(current_time-start_time)
 			#print("Delay: ", time.time()-data["time"])
 			x_pos = data["position"][0]
 			y_pos = data["position"][1]

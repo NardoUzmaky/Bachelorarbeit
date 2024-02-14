@@ -23,7 +23,8 @@ class LowPassFilter:
         return self.filtered_value
 
 
-ball_position = [] 
+x_ball_position = [] 
+y_ball_position = []
 ball_position_times = []
 measured_angles = []
 measured_angles_times = []
@@ -95,10 +96,10 @@ y_setpoint = 0
 def ball_position_loop():
 	global x_setpoint
 	global y_setpoint
-	x_ball_pid = PID(20, 0, 1, setpoint = 0)
+	x_ball_pid = PID(20, 1, 1, setpoint = 0)
 	x_ball_pid.output_limits = (-10, 10)
 	
-	y_ball_pid = PID(20, 0, 1, setpoint = 0)
+	y_ball_pid = PID(20, 1, 1, setpoint = 0)
 	y_ball_pid.output_limits = (-10, 10)
 	
 	x_lowpass = LowPassFilter(0.5)
@@ -109,12 +110,13 @@ def ball_position_loop():
 		if not data_queue.empty():
 			data = data_queue.get()
 			current_time = time.time()
-			#x_ball_pid.setpoint = 0.15*np.sin(current_time-start_time)
-			#y_ball_pid.setpoint = 0.15*np.cos(current_time-start_time)
+			x_ball_pid.setpoint = 0.15*np.sin(current_time-start_time)
+			y_ball_pid.setpoint = 0.15*np.cos(current_time-start_time)
 			#print("Delay: ", time.time()-data["time"])
 			x_pos = data["position"][0]
 			y_pos = data["position"][1]
-			ball_position.append(x_pos)
+			x_ball_position.append(x_pos)
+			y_ball_position.append(y_pos)
 			ball_position_times.append(data["time"])
 			x_vel = data["speed"][0]
 			y_vel = data["speed"][1]
@@ -123,13 +125,13 @@ def ball_position_loop():
 			velocities.append(x_vel)
 			velocities_times.append(data["time"])
 			print("speed: ", x_vel)
-			x_setpoint = x_ball_pid(x_pos)- x_vel*15
+			x_setpoint = x_ball_pid(x_pos) -x_vel*20
 			if x_setpoint>10:
 				x_setpoint = 10
 			elif x_setpoint<-10:
 				x_setpoint= -10
 				
-			y_setpoint = y_ball_pid(y_pos) -y_vel*15
+			y_setpoint = y_ball_pid(y_pos) -y_vel*20
 			if y_setpoint>10:
 				y_setpoint = 10
 			elif y_setpoint<-10:
@@ -162,19 +164,30 @@ if __name__ == "__main__":
 	reference_angles_times = [x - start_point for x in reference_angles_times]
 	ball_position_times = [x - start_point for x in ball_position_times]
 	velocities_times = [x-start_point for x in velocities_times]
-	#velocities = [x*10 for x in velocities]
-	#ball_position = [x*10 for x in ball_position]
-
+	"""
 	fig, ax1 = plt.subplots()
 	ax1.plot(measured_angles_times, measured_angles, color='green')
 	ax1.plot(reference_angles_times, reference_angles, color='red')
 	ax2 = ax1.twinx()
-	ax2.plot(ball_position_times, ball_position, color='blue')
+	ax2.plot(ball_position_times, x_ball_position, color='blue')
 	#ax2.plot(velocities_times, velocities, color='pink')
 	plt.title("Reference Angle vs Measured Angle")
 	ax1.set_xlabel("Time [s]")
 	ax1.set_ylabel("Angle [deg]")
 	ax2.set_ylabel("Distance from Center [m]")
+	ax1.legend(['meas. angle', 'ref. angle'])
+	ax2.legend(['dist. from center'], loc='lower right')
 	ax1.set_ylim(12, -12)
 	ax2.set_ylim(-0.35, 0.35) 
+	"""
+	fig, ax = plt.subplots()
+	circle = plt.Circle((0, 0), 0.15, color='red', fill=False)
+	ax.add_patch(circle)
+	ax.set_aspect('equal', adjustable='box')
+	ax.plot(x_ball_position, y_ball_position, color='blue')
+	ax.set_ylim(-0.35, 0.35)
+	ax.set_xlim(-0.35, 0.35)
+	ax.set_ylabel("Y-Coordinate [m]")
+	ax.set_xlabel("X-Coordinate [m]")
+	plt.legend(['Circle with Radius of 15cm', 'Ball Path'])
 	plt.show()

@@ -49,6 +49,7 @@ def detect_position(frame, Width, Height):
 					cx = int(M['m10'] / M['m00'])
 					cy = int(M['m01'] / M['m00'])
 					cv.circle(frame, (cx, cy), 3, (255, 0, 0), -1)
+					cv.imshow('Frame', frame)
 					return [cx, cy]
 					#print(f"Ball position: {cx}, {cy}")
 	#cv.imshow('Frame', frame)
@@ -61,11 +62,11 @@ def capture_video(data_queue = None):
 	Width = 1280
 	Height = 720
 	FPS = 60
-	number_of_frames = 3000
+	number_of_frames = 30000
 
 	cap.set(cv.CAP_PROP_FOURCC, cv.VideoWriter_fourcc(*'MJPG'))
 	
-	cap.set(cv.CAP_PROP_EXPOSURE, 100)
+	#cap.set(cv.CAP_PROP_EXPOSURE, 100)
 	subprocess.check_call("v4l2-ctl -d /dev/video0 --set-ctrl white_balance_automatic=0", shell=True)
 	subprocess.check_call("v4l2-ctl -d /dev/video0 --set-ctrl white_balance_temperature=3500", shell=True)
 	cap.set(cv.CAP_PROP_FRAME_WIDTH, Width)

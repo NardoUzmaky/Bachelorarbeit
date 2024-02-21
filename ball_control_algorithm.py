@@ -58,8 +58,7 @@ def angle_control_loop():
 			time.sleep(0.001)
 			x_angle = read_potentiometer(x_adc, 1)
 			y_angle = read_potentiometer(y_adc, 2)
-			#print("ANGLE: ", x_angle)
-			
+
 			measured_angles_times.append(time.time())
 			measured_angles.append(x_angle)
 			
@@ -81,13 +80,6 @@ def angle_control_loop():
 		x_motor.clean_up()
 		y_motor.clean_up()
 
-		#time = np.linspace(0, (len(values)-1)*0.01, len(values))
-		#plt.plot(time, values)
-		#plt.title("Step response")
-		#plt.xlabel("Time [s]")
-		#plt.ylabel("Angle [deg]")
-		#plt.show()
-		
 data_queue = queue.Queue()
 shutdown_flag = threading.Event()
 x_setpoint = 0
@@ -110,8 +102,8 @@ def ball_position_loop():
 		if not data_queue.empty():
 			data = data_queue.get()
 			current_time = time.time()
-			x_ball_pid.setpoint = 0.15*np.sin(current_time-start_time)
-			y_ball_pid.setpoint = 0.15*np.cos(current_time-start_time)
+			x_ball_pid.setpoint = 0.15*np.sin(1*(current_time-start_time))
+			y_ball_pid.setpoint = 0.15*np.cos(1*(current_time-start_time))
 			#print("Delay: ", time.time()-data["time"])
 			x_pos = data["position"][0]
 			y_pos = data["position"][1]

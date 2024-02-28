@@ -65,7 +65,7 @@ y_angle_setpoint = 0
 
 def send_thread(s):
     while not shutdown_flag.is_set():
-        time.sleep(0.001)
+        time.sleep(0.005)
         data = {"x_angle_setpoint": x_angle_setpoint, "y_angle_setpoint": y_angle_setpoint}
         json_data = json.dumps(data).encode('utf-8')
         send_data(s, json_data)

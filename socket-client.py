@@ -9,12 +9,12 @@ import csv
 from simple_pid import PID
 import numpy as np
 
-HOST = "192.168.1.2"
+HOST = "192.168.1.3"
 PORT = 65432
 
 CHUNK_SIZE = 8192
-img_path = "image.jpg"
-filesize = os.path.getsize(img_path)
+#img_path = "image.jpg"
+#filesize = os.path.getsize(img_path)
 
 class LowPassFilter:
     def __init__(self, alpha):

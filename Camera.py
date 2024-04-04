@@ -30,11 +30,11 @@ def detect_position(frame, Width, Height):
 	#frame = frame[:, int(0.23*Width):int(0.8*Width)]
 	
 	gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-	
+
 	_, thresh = cv.threshold(gray, 140, 255, cv.THRESH_BINARY_INV)
 	kernel = np.ones((5, 5), np.uint8)
-	thresh = cv.morphologyEx(thresh, cv.MORPH_OPEN, kernel)
 
+	thresh = cv.morphologyEx(thresh, cv.MORPH_OPEN, kernel)
 	contours, _ = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 
 	for contour in contours:
@@ -49,10 +49,8 @@ def detect_position(frame, Width, Height):
 					cx = int(M['m10'] / M['m00'])
 					cy = int(M['m01'] / M['m00'])
 					cv.circle(frame, (cx, cy), 3, (255, 0, 0), -1)
-					cv.imshow('Frame', frame)
+					#cv.imshow('Frame', frame)
 					return [cx, cy]
-					#print(f"Ball position: {cx}, {cy}")
-	#cv.imshow('Frame', frame)
 	return
 
 def capture_video(data_queue = None):

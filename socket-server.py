@@ -14,7 +14,8 @@ from ball_control_algorithm import LowPassFilter
 
 from Camera import capture_video
 
-HOST = "192.168.1.2"
+HOST = "192.168.1.3"
+#HOST = "10.5.63.57"
 PORT = 65432
 CHUNK_SIZE = 8192
 

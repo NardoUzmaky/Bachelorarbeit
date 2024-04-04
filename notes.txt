@@ -45,3 +45,9 @@ Inner Loop Parameters: Kp =7, Ki = 0.6, Kd = 0.66
 
 Best parameters for circle tracking: Kp = 20, Ki = 0, Kd =0.1, vel_factor = 15
 Best parameters for center regulation: Kp = 20, Ki = 6, Kd = 1
+
+Establish ssh connection to Raspberry Pi: 
+	1. Open Windows Powershell terminal
+	2. Type "ssh guest@192.168.1.3"
+	3. Press space for the password and enter
+	4. To disconnect: Type "exit" in the terminal

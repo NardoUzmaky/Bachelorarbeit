@@ -24,14 +24,14 @@ try:
 	joystick = pygame.joystick.Joystick(0)
 	joystick.init()
 	
-	for i in range(10000):
+	for i in range(1000000):
 		x_angle = read_potentiometer(x_adc, 1)
 		y_angle = read_potentiometer(y_adc, 2)
 		print("Angles: ", x_angle, y_angle)
 		
 		pygame.event.pump()
-		joystick_x = joystick.get_axis(2)*(-1)
-		joystick_y = joystick.get_axis(3)
+		joystick_x = joystick.get_axis(3)
+		joystick_y = joystick.get_axis(4)*(-1)
 		print(joystick_x, joystick_y)
 		
 		x_motor.update(joystick_x*10, x_angle)

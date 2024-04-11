@@ -66,6 +66,8 @@ def angle_control_loop():
 	interval = 0
 	global x_setpoint
 	global y_setpoint
+	global x_angle
+	global y_angle
 	
 	try:
 		values = []
@@ -104,6 +106,7 @@ def send_thread(s):
 		#print("looking for data")
 		if not data_queue.empty():
 				data = data_queue.get()
+				data["angle"] = [x_angle,y_angle]
 				json_data = json.dumps(data).encode('utf-8')
 				send_data(s, json_data)
 			

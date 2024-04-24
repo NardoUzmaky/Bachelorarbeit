@@ -26,7 +26,7 @@ def center_position(position, center):
 
 def detect_position(frame, Width, Height):
 	#frame = frame[90:650, 377:937]
-	frame = frame[int(.116666*Height):int(0.916666*Height), int(0.28333*Width):int(0.75*Width)]
+	frame = frame[int(.116666*Height):int(0.955*Height), int(0.28333*Width):int(0.75*Width)]
 	#frame = frame[:, int(0.23*Width):int(0.8*Width)]
 	
 	gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
@@ -101,7 +101,8 @@ def capture_video(data_queue = None):
 		data = {}
 		current_pos = detect_position(frame, Width, Height)
 		if current_pos is not None:
-			current_pos = center_position(current_pos, [296, 285])
+			current_pos = center_position(current_pos, [295, 310])
+			print(current_pos)
 			current_pos = pixel2meter(current_pos)
 			formatted_list = [format(num, ".2f") for num in current_pos]
 			print("Ball position: ", formatted_list)

@@ -102,7 +102,6 @@ def capture_video(data_queue = None):
 		current_pos = detect_position(frame, Width, Height)
 		if current_pos is not None:
 			current_pos = center_position(current_pos, [295, 310])
-			print(current_pos)
 			current_pos = pixel2meter(current_pos)
 			formatted_list = [format(num, ".2f") for num in current_pos]
 			print("Ball position: ", formatted_list)
